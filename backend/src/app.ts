@@ -5,6 +5,8 @@ import { errorHandler } from "./middleware/errorHandler";
 import { requestLogger } from "./middleware/logger";
 import scanRoutes from "./routes/scan.routes";
 import sseRoutes from "./routes/sse.routes";
+import assetRoutes from "./routes/asset.routes";
+import dashboardRoutes from "./routes/dashboard.routes";
 
 dotenv.config({ path: "../.env" });
 
@@ -24,6 +26,8 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/scans", scanRoutes);
 app.use("/api/scans", sseRoutes);
+app.use("/api", assetRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 app.use(errorHandler);
 
 export default app;
