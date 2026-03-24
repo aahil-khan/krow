@@ -17,6 +17,19 @@ export async function executeScan(scanId: string): Promise<void> {
     });
 
     const discovered = await discoverSubdomains(scan.domain);
+    if (discovered.length === 1 && discovered[0]?.hostname === scan.domain.toLowerCase()) {
+      await prisma.auditLog.create({
+        data: {
+          eventType: "DISCOVERY_FALLBACK_USED",
+          details: {
+            scanId,
+            domain: scan.domain,
+            provider: "crt.sh",
+            fallback: "root-domain-only",
+          },
+        },
+      });
+    }
 
     const assets = await Promise.all(
       discovered.map((d) =>
