@@ -1,0 +1,29 @@
+import cors from "cors";
+import dotenv from "dotenv";
+import express from "express";
+import { errorHandler } from "./middleware/errorHandler";
+import { requestLogger } from "./middleware/logger";
+import scanRoutes from "./routes/scan.routes";
+import sseRoutes from "./routes/sse.routes";
+
+dotenv.config({ path: "../.env" });
+
+const app = express();
+
+app.use(
+  cors({
+    origin: process.env.VITE_API_URL?.replace("/api", "") || "http://localhost:5173",
+  }),
+);
+app.use(express.json());
+app.use(requestLogger);
+
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+app.use("/api/scans", scanRoutes);
+app.use("/api/scans", sseRoutes);
+app.use(errorHandler);
+
+export default app;

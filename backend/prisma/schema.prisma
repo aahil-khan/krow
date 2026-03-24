@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Scan {
+  id           String      @id @default(cuid())
+  domain       String
+  status       ScanStatus  @default(PENDING)
+  isBaseline   Boolean     @default(false)
+  totalAssets  Int         @default(0)
+  scannedAssets Int        @default(0)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  assets       Asset[]
+  cbomRecord   CbomRecord?
+  badges       Badge[]
+
+  @@index([domain])
+}
+
+enum ScanStatus {
+  PENDING
+  DISCOVERING
+  SCANNING
+  ANALYZING
+  GENERATING_REPORTS
+  COMPLETED
+  FAILED
+}
+
+model Asset {
+  id               String           @id @default(cuid())
+  scanId           String
+  scan             Scan             @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  hostname         String
+  assetType        AssetType        @default(SUBDOMAIN)
+  port             Int              @default(443)
+  isAlive          Boolean          @default(false)
+  firstSeenAt      DateTime?
+  tlsVersion       String?
+  cipherSuites     Json?
+  preferredCipher  String?
+  keyExchange      String?
+  certChain        Json?
+  certExpiry       DateTime?
+  certIssuer       String?
+  certSubject      String?
+  certSigAlgo      String?
+  certKeySize      Int?
+  certSerialNumber String?
+  jwksAlgorithm    String?
+  jwksEndpoint     String?
+  scanMethod       ScanMethod       @default(DIRECT)
+  rawScanJson      Json?
+  scannedAt        DateTime?
+  errorMessage     String?
+  riskScore        RiskScore?
+  badge            Badge?
+  aiRecommendation AiRecommendation?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([scanId])
+  @@index([hostname])
+}
+
+enum AssetType {
+  SUBDOMAIN
+  API
+  VPN
+  MAIL
+}
+
+enum ScanMethod {
+  DIRECT
+  CRT_SH
+  CENSYS
+  SSL_LABS
+}
+
+model RiskScore {
+  id                  String             @id @default(cuid())
+  assetId             String             @unique
+  asset               Asset              @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  totalScore          Float
+  classification      RiskClassification
+  tlsVersionScore     Float
+  certSigAlgoScore    Float
+  keyExchangeScore    Float
+  jwksAlgoScore       Float
+  cipherStrengthScore Float
+  createdAt           DateTime           @default(now())
+}
+
+enum RiskClassification {
+  FULLY_QUANTUM_SAFE
+  PQC_READY
+  PARTIALLY_SAFE
+  VULNERABLE
+}
+
+model CbomRecord {
+  id        String   @id @default(cuid())
+  scanId    String   @unique
+  scan      Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  cbomJson  Json
+  version   String   @default("1.6")
+  createdAt DateTime @default(now())
+}
+
+model Badge {
+  id            String    @id @default(cuid())
+  assetId       String    @unique
+  asset         Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  scanId        String
+  scan          Scan      @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  badgeType     BadgeType
+  score         Float
+  signatureAlgo String    @default("HMAC-SHA256")
+  signature     String
+  payload       Json
+  qrCodeData    String
+  issuedAt      DateTime  @default(now())
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  revokeReason  String?
+
+  @@index([scanId])
+}
+
+enum BadgeType {
+  FULLY_QUANTUM_SAFE
+  PQC_READY
+}
+
+model AiRecommendation {
+  id         String   @id @default(cuid())
+  assetId    String   @unique
+  asset      Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  provider   String   @default("anthropic")
+  model      String   @default("claude-sonnet-4-20250514")
+  prompt     String
+  response   String
+  isFallback Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  eventType String
+  userId    String?
+  details   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([eventType])
+  @@index([createdAt])
+}
