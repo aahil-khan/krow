@@ -17,8 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Shield, Activity, AlertTriangle, Clock, Loader2 } from "lucide-react";
+import { Shield, Activity, AlertTriangle, Clock, Loader2, FileText, ScanIcon } from "lucide-react";
 import { classificationLabel, classificationBgColor, formatDate } from "@/lib/formatters";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -82,6 +83,27 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Portfolio Dashboard</h1>
+          {summary.lastScanDomain && (
+            <p className="text-sm text-muted-foreground">
+              Last scan: <span className="font-mono">{summary.lastScanDomain}</span>
+              {summary.lastScanDate && <> &middot; {formatDate(summary.lastScanDate)}</>}
+            </p>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => router.push("/scan")}>
+            <ScanIcon className="h-4 w-4 mr-2" /> New Scan
+          </Button>
+          <Button variant="outline" onClick={() => router.push("/reports")}>
+            <FileText className="h-4 w-4 mr-2" /> View Reports
+          </Button>
+        </div>
+      </div>
+
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard

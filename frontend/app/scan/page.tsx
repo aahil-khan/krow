@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Globe, Loader2, Scan as ScanIcon } from "lucide-react";
+import { Globe, Loader2, Scan as ScanIcon, Activity } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { createScan, getScans } from "@/services/api";
+import { useScanProgress } from "@/hooks/useScanProgress";
 import StatusBadge from "@/components/dashboard/StatusBadge";
 import { formatDate } from "@/lib/formatters";
 import type { Scan } from "@/types";
@@ -25,7 +26,16 @@ export default function ScanPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scans, setScans] = useState<Scan[]>([]);
+  const [activeScanId, setActiveScanId] = useState<string | null>(null);
+  const { progress, events, isComplete } = useScanProgress(activeScanId);
   const router = useRouter();
+
+  // Clear activeScanId and refresh list when SSE indicates completion
+  useEffect(() => {
+    if (!isComplete || !activeScanId) return;
+    setActiveScanId(null);
+    getScans().then(setScans).catch(() => {});
+  }, [isComplete, activeScanId]);
 
   // Initial scan list fetch
   useEffect(() => {
@@ -70,6 +80,7 @@ export default function ScanPage() {
     try {
       const scan = await createScan(domain.trim());
       setScans((prev) => [scan, ...prev]);
+      setActiveScanId(scan.id);
       setDomain("");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to start scan";
@@ -123,9 +134,56 @@ export default function ScanPage() {
               )}
             </Button>
           </form>
-          {error && <p className="text-sm text-destructive mt-3">{error}</p>}
+      {error && <p className="text-sm text-destructive mt-3">{error}</p>}
         </CardContent>
       </Card>
+
+      {/* Live Scan Progress */}
+      {activeScanId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 animate-pulse text-primary" />
+              Scan Progress
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-muted-foreground">Progress</span>
+                <span className="font-mono">{progress}%</span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+
+            {events.filter((e) => e.asset).slice(-10).length > 0 && (
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {events
+                  .filter((e) => e.asset)
+                  .slice(-10)
+                  .map((e, i) => (
+                    <div key={i} className="flex justify-between text-sm py-1 border-b border-border/40 last:border-0">
+                      <span className="font-mono text-xs truncate max-w-[70%]">{e.asset!.hostname}</span>
+                      <div className="flex items-center gap-2">
+                        {e.asset!.tlsVersion && (
+                          <span className="text-muted-foreground text-xs">{e.asset!.tlsVersion}</span>
+                        )}
+                        {e.asset!.score !== undefined && (
+                          <span className="font-mono text-xs">{e.asset!.score}/100</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent Scans */}
       {scans.length > 0 && (

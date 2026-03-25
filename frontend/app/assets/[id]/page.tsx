@@ -19,6 +19,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { classificationLabel, formatDate, classificationBgColor } from "@/lib/formatters";
+import { RecommendationPanel } from "@/components/asset/RecommendationPanel";
+import { BadgeCard } from "@/components/badge/BadgeCard";
 
 export default function AssetDetailPage() {
   const params = useParams();
@@ -166,7 +168,7 @@ export default function AssetDetailPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
+          <RecommendationPanel assetId={params.id as string} />        </div>
 
         {/* Right column: Risk Breakdown */}
         <div className="space-y-6">
@@ -197,29 +199,7 @@ export default function AssetDetailPage() {
             </Card>
           )}
 
-          {/* Badge (if issued) */}
-          {asset.badge && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-green-500" /> PQC Badge
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center space-y-2">
-                  <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
-                    {asset.badge.badgeType === "FULLY_QUANTUM_SAFE" ? "Fully Quantum Safe" : "PQC Ready"}
-                  </Badge>
-                  <p className="text-xs text-muted-foreground">
-                    Issued: {formatDate(asset.badge.issuedAt)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Expires: {formatDate(asset.badge.expiresAt)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {asset.badge && <BadgeCard badge={asset.badge} />}
         </div>
       </div>
     </div>
