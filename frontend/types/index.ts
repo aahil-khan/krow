@@ -78,10 +78,14 @@ export interface DashboardSummary {
   averageScore: number;
   classificationBreakdown: Record<RiskClassification, number>;
   lastScanDate: string | null;
+  lastScanDomain: string | null;
 }
 
 export interface HeatmapEntry {
+  id: string;
   hostname: string;
   score: number;
   classification: RiskClassification;
+  tlsVersion?: string | null;
+  keyExchange?: string | null;
 }

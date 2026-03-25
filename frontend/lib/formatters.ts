@@ -44,10 +44,11 @@ export function classificationColor(c: RiskClassification): string {
 
 export function classificationBgColor(c: RiskClassification): string {
   switch (c) {
-    case "FULLY_QUANTUM_SAFE": return "bg-green-500";
-    case "PQC_READY": return "bg-blue-500";
-    case "PARTIALLY_SAFE": return "bg-amber-500";
-    case "VULNERABLE": return "bg-red-500";
+    case "FULLY_QUANTUM_SAFE": return "bg-green-500/10 text-green-500";
+    case "PQC_READY": return "bg-blue-500/10 text-blue-500";
+    case "PARTIALLY_SAFE": return "bg-amber-500/10 text-amber-500";
+    case "VULNERABLE": return "bg-red-500/10 text-red-500";
+    default: return "bg-gray-500/10 text-gray-500";
   }
 }
 

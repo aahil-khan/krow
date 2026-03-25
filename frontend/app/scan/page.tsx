@@ -1,19 +1,64 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Globe, Loader2, Scan } from "lucide-react";
+import { Globe, Loader2, Scan as ScanIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { createScan } from "@/services/api";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { createScan, getScans } from "@/services/api";
+import StatusBadge from "@/components/dashboard/StatusBadge";
+import { formatDate } from "@/lib/formatters";
+import type { Scan } from "@/types";
 
 export default function ScanPage() {
   const [domain, setDomain] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scans, setScans] = useState<Scan[]>([]);
   const router = useRouter();
+
+  // Initial scan list fetch
+  useEffect(() => {
+    async function fetchScans() {
+      try {
+        const data = await getScans();
+        setScans(data);
+      } catch {
+        // Silently fail — scan list is non-critical
+      }
+    }
+    fetchScans();
+  }, []);
+
+  // Polling: refresh every 3s while any scan is active
+  useEffect(() => {
+    const hasActiveScan = scans.some(
+      (s) => s.status !== "COMPLETED" && s.status !== "FAILED"
+    );
+
+    if (!hasActiveScan) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const data = await getScans();
+        setScans(data);
+      } catch {
+        // Ignore polling errors
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [scans]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,8 +68,9 @@ export default function ScanPage() {
     setError(null);
 
     try {
-      await createScan(domain.trim());
-      router.push("/dashboard");
+      const scan = await createScan(domain.trim());
+      setScans((prev) => [scan, ...prev]);
+      setDomain("");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to start scan";
       setError(message);
@@ -71,7 +117,7 @@ export default function ScanPage() {
                 </>
               ) : (
                 <>
-                  <Scan className="h-4 w-4 mr-2" />
+                  <ScanIcon className="h-4 w-4 mr-2" />
                   Start Scan
                 </>
               )}
@@ -80,6 +126,43 @@ export default function ScanPage() {
           {error && <p className="text-sm text-destructive mt-3">{error}</p>}
         </CardContent>
       </Card>
+
+      {/* Recent Scans */}
+      {scans.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Scans</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Domain</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Assets</TableHead>
+                  <TableHead>Started</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {scans.map((scan) => (
+                  <TableRow
+                    key={scan.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => scan.status === "COMPLETED" && router.push("/dashboard")}
+                  >
+                    <TableCell className="font-mono text-sm">{scan.domain}</TableCell>
+                    <TableCell><StatusBadge status={scan.status} /></TableCell>
+                    <TableCell>{scan.totalAssets || "—"}</TableCell>
+                    <TableCell className="text-sm">
+                      {scan.startedAt ? formatDate(scan.startedAt) : "Pending"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
