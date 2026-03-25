@@ -18,8 +18,56 @@ export interface BadgePayload {
   expiresAt: string;
 }
 
+/**
+ * Stable serialization for HMAC. Postgres/Prisma may return JSON with keys in a
+ * different order than at issue time; JSON.stringify order must match sign + verify.
+ */
+function canonicalPayloadString(p: BadgePayload): string {
+  return JSON.stringify({
+    badgeId: p.badgeId,
+    assetHostname: p.assetHostname,
+    scanId: p.scanId,
+    score: p.score,
+    classification: p.classification,
+    issuedAt: p.issuedAt,
+    expiresAt: p.expiresAt,
+  });
+}
+
+function parsePayloadFromDb(raw: unknown): BadgePayload | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const badgeId = typeof o.badgeId === "string" ? o.badgeId : null;
+  const assetHostname = typeof o.assetHostname === "string" ? o.assetHostname : null;
+  const scanId = typeof o.scanId === "string" ? o.scanId : null;
+  const score = typeof o.score === "number" ? o.score : null;
+  const classification = typeof o.classification === "string" ? o.classification : null;
+  const issuedAt = typeof o.issuedAt === "string" ? o.issuedAt : null;
+  const expiresAt = typeof o.expiresAt === "string" ? o.expiresAt : null;
+  if (
+    badgeId == null ||
+    assetHostname == null ||
+    scanId == null ||
+    score == null ||
+    classification == null ||
+    issuedAt == null ||
+    expiresAt == null
+  ) {
+    return null;
+  }
+  return {
+    badgeId,
+    assetHostname,
+    scanId,
+    score,
+    classification,
+    issuedAt,
+    expiresAt,
+  };
+}
+
 function signPayload(payload: BadgePayload): string {
-  const data = JSON.stringify(payload);
+  const data = canonicalPayloadString(payload);
   return crypto.createHmac("sha256", SIGNING_SECRET).update(data).digest("hex");
 }
 
@@ -130,8 +178,9 @@ export async function verifyBadge(badgeId: string): Promise<
 
   if (!badge) return { valid: false, error: "Badge not found" };
 
-  const payload = badge.payload as unknown as BadgePayload;
-  const signatureValid = verifySignature(payload, badge.signature);
+  const payload = parsePayloadFromDb(badge.payload);
+  const signatureValid =
+    payload != null ? verifySignature(payload, badge.signature) : false;
 
   const now = new Date();
   const expired = now > badge.expiresAt;
