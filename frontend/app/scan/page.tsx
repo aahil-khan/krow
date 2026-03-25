@@ -36,7 +36,10 @@ export default function ScanPage() {
     if (!isComplete || !activeScanId) return;
     setActiveScanId(null);
     getScans().then(setScans).catch(() => {});
-  }, [isComplete, activeScanId]);
+    // Auto-navigate to dashboard after 2 seconds
+    const timeout = setTimeout(() => router.push("/dashboard"), 2000);
+    return () => clearTimeout(timeout);
+  }, [isComplete, activeScanId, router]);
 
   // Initial scan list fetch
   useEffect(() => {

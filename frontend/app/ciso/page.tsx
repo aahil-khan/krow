@@ -24,6 +24,7 @@ export default function CISOPage() {
   const [heatmap, setHeatmap] = useState<HeatmapEntry[]>([]);
   const [scans, setScans] = useState<Scan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -36,6 +37,9 @@ export default function CISOPage() {
         setSummary(s);
         setHeatmap(h.assets || []);
         setScans(sc);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Failed to load CISO data";
+        setError(message);
       } finally {
         setLoading(false);
       }
@@ -47,6 +51,18 @@ export default function CISOPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-3" />
+        <p className="text-destructive">{error}</p>
+        <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
       </div>
     );
   }

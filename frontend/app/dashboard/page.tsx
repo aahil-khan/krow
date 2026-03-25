@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Shield, Activity, AlertTriangle, Clock, Loader2, FileText, ScanIcon } from "lucide-react";
+import { Shield, Activity, AlertTriangle, Clock, Loader2, FileText, ScanIcon, Building2 } from "lucide-react";
 import { classificationLabel, classificationBgColor, formatDate } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 
@@ -100,6 +100,9 @@ export default function DashboardPage() {
           </Button>
           <Button variant="outline" onClick={() => router.push("/reports")}>
             <FileText className="h-4 w-4 mr-2" /> View Reports
+          </Button>
+          <Button variant="outline" onClick={() => router.push("/ciso")}>
+            <Building2 className="h-4 w-4 mr-2" /> CISO Summary
           </Button>
         </div>
       </div>
