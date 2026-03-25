@@ -1,5 +1,6 @@
 import { Router } from "express";
 import prisma from "../utils/prisma";
+import { generateRecommendation } from "../services/ai.service";
 
 const router = Router();
 
@@ -52,6 +53,18 @@ router.get("/assets/:id", async (req, res) => {
   } catch (error) {
     console.error("Error getting asset:", error);
     res.status(500).json({ error: "Failed to get asset" });
+  }
+});
+
+// GET /api/assets/:id/recommendation
+router.get("/assets/:id/recommendation", async (req, res) => {
+  try {
+    const recommendation = await generateRecommendation(req.params.id);
+    res.json(recommendation);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to generate recommendation";
+    const status = message === "Asset not found" ? 404 : 500;
+    res.status(status).json({ error: message });
   }
 });
 
