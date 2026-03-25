@@ -1,0 +1,16 @@
+{
+  "servers": {
+    "flowsync": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "c:\\Users\\aahil\\.cursor\\extensions\\vanta-thapar.flowsync-1.0.2\\dist\\mcp-server.mjs"
+      ],
+      "env": {
+        "FLOWSYNC_API_URL": "https://86tzell2w9.execute-api.us-east-1.amazonaws.com/prod",
+        "FLOWSYNC_PROJECT_ID": "eaac536b-29bc-46a7-9a3f-9891b3138f50",
+        "FLOWSYNC_TOKEN": "43dc80afeacab162c1736e4f3af7f16cd2004a1be46f3c85a17b01271295f7f7"
+      }
+    }
+  }
+}
