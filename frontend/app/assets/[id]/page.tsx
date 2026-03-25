@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getAsset } from "@/services/api";
-import { Asset } from "@/types";
+import { getAsset, getScanDrift } from "@/services/api";
+import { Asset, DriftResult } from "@/types";
 import { RiskScoreDisplay } from "@/components/dashboard/RiskScoreDisplay";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,9 @@ import {
   FileText,
   AlertTriangle,
   Loader2,
+  TrendingUp,
+  TrendingDown,
+  GitCompare,
 } from "lucide-react";
 import { classificationLabel, formatDate, classificationBgColor } from "@/lib/formatters";
 import { RecommendationPanel } from "@/components/asset/RecommendationPanel";
@@ -28,6 +31,9 @@ export default function AssetDetailPage() {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [drift, setDrift] = useState<DriftResult | null>(null);
+  const [driftLoading, setDriftLoading] = useState(false);
+  const [driftError, setDriftError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchAsset() {
@@ -43,6 +49,21 @@ export default function AssetDetailPage() {
     }
     fetchAsset();
   }, [params.id]);
+
+  const handleCompareDrift = async () => {
+    if (!asset) return;
+    setDriftLoading(true);
+    setDriftError(null);
+    try {
+      const data = await getScanDrift(asset.scanId);
+      setDrift(data);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to load drift data";
+      setDriftError(message);
+    } finally {
+      setDriftLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -202,6 +223,135 @@ export default function AssetDetailPage() {
           {asset.badge && <BadgeCard badge={asset.badge} />}
         </div>
       </div>
+
+      {/* Scan Drift */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <GitCompare className="h-4 w-4" /> Scan Drift
+            </CardTitle>
+            {!drift && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleCompareDrift}
+                disabled={driftLoading}
+              >
+                {driftLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <GitCompare className="h-4 w-4 mr-2" />
+                )}
+                Compare to Baseline
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!drift && !driftLoading && !driftError && (
+            <p className="text-sm text-muted-foreground">
+              Click &ldquo;Compare to Baseline&rdquo; to detect changes since the last baseline scan.
+            </p>
+          )}
+          {driftError && (
+            <p className="text-sm text-destructive">{driftError}</p>
+          )}
+          {drift && (
+            <div className="space-y-4">
+              {/* Summary */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="rounded-lg bg-muted p-3 text-center">
+                  <div className="text-xl font-bold">{drift.summary.totalChanged}</div>
+                  <div className="text-xs text-muted-foreground">Changed</div>
+                </div>
+                <div className="rounded-lg bg-muted p-3 text-center">
+                  <div className="text-xl font-bold">{drift.summary.previousAvgScore.toFixed(1)}</div>
+                  <div className="text-xs text-muted-foreground">Prev Avg</div>
+                </div>
+                <div className="rounded-lg bg-muted p-3 text-center">
+                  <div className="text-xl font-bold">{drift.summary.currentAvgScore.toFixed(1)}</div>
+                  <div className="text-xs text-muted-foreground">Curr Avg</div>
+                </div>
+                <div className="rounded-lg bg-muted p-3 text-center">
+                  <div className={`text-xl font-bold ${
+                    drift.summary.avgScoreChange < 0 ? "text-green-500" : "text-red-500"
+                  }`}>
+                    {drift.summary.avgScoreChange > 0 ? "+" : ""}{drift.summary.avgScoreChange.toFixed(1)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Score &Delta;</div>
+                </div>
+              </div>
+
+              {/* Regressions */}
+              {drift.regressions.length > 0 && (
+                <div>
+                  <h4 className="flex items-center gap-1 text-sm font-medium text-red-500 mb-2">
+                    <TrendingUp className="h-3.5 w-3.5" /> Regressions ({drift.regressions.length})
+                  </h4>
+                  <div className="space-y-1">
+                    {drift.regressions.map((item, i) => (
+                      <div key={i} className="flex justify-between text-xs bg-red-500/10 rounded-md px-3 py-2">
+                        <span className="font-mono">{item.hostname}</span>
+                        <span>{item.previousScore ?? "—"} → {item.currentScore ?? "—"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Improvements */}
+              {drift.improvements.length > 0 && (
+                <div>
+                  <h4 className="flex items-center gap-1 text-sm font-medium text-green-500 mb-2">
+                    <TrendingDown className="h-3.5 w-3.5" /> Improvements ({drift.improvements.length})
+                  </h4>
+                  <div className="space-y-1">
+                    {drift.improvements.map((item, i) => (
+                      <div key={i} className="flex justify-between text-xs bg-green-500/10 rounded-md px-3 py-2">
+                        <span className="font-mono">{item.hostname}</span>
+                        <span>{item.previousScore ?? "—"} → {item.currentScore ?? "—"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* New Assets */}
+              {drift.newAssets.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-blue-500 mb-2">
+                    New Assets ({drift.newAssets.length})
+                  </h4>
+                  <div className="space-y-1">
+                    {drift.newAssets.map((item, i) => (
+                      <div key={i} className="text-xs bg-blue-500/10 rounded-md px-3 py-2 font-mono">
+                        {item.hostname}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Removed Assets */}
+              {drift.removedAssets.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                    Removed Assets ({drift.removedAssets.length})
+                  </h4>
+                  <div className="space-y-1">
+                    {drift.removedAssets.map((item, i) => (
+                      <div key={i} className="text-xs bg-muted rounded-md px-3 py-2 font-mono">
+                        {item.hostname}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

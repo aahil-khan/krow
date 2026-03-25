@@ -22,10 +22,37 @@ export interface Scan {
   isBaseline: boolean;
   totalAssets: number;
   scannedAssets: number;
+  averageScore?: number;
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
   assets?: Asset[];
+}
+
+export interface DriftItem {
+  hostname: string;
+  assetType: string;
+  previousScore: number | null;
+  currentScore: number | null;
+  previousClassification: string | null;
+  currentClassification: string | null;
+  changeType: "regression" | "improvement" | "new" | "removed";
+}
+
+export interface DriftResult {
+  baselineScanId: string;
+  currentScanId: string;
+  baselineDomain: string;
+  regressions: DriftItem[];
+  improvements: DriftItem[];
+  newAssets: DriftItem[];
+  removedAssets: DriftItem[];
+  summary: {
+    totalChanged: number;
+    avgScoreChange: number;
+    previousAvgScore: number;
+    currentAvgScore: number;
+  };
 }
 
 export interface Asset {

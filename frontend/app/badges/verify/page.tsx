@@ -90,7 +90,7 @@ function BadgeVerifyContent() {
       )}
 
       {badge && (
-        <Card className={isValid ? "border-green-500/30" : "border-red-500/30"}>
+        <Card className={isValid ? "border-green-500/30" : isRevoked ? "border-red-500/30" : "border-amber-500/30"}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               {isValid ? (

@@ -54,4 +54,9 @@ export async function getRecommendation(assetId: string) {
   return data;
 }
 
+export async function getScanDrift(scanId: string) {
+  const { data } = await api.get(`/scans/${scanId}/drift`);
+  return data;
+}
+
 export default api;

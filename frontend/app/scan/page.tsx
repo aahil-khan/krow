@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Globe, Loader2, Scan as ScanIcon, Activity } from "lucide-react";
+import { Globe, Loader2, Scan as ScanIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { createScan, getScans } from "@/services/api";
-import { useScanProgress } from "@/hooks/useScanProgress";
+import { useSSE } from "@/lib/useSSE";
 import StatusBadge from "@/components/dashboard/StatusBadge";
 import { formatDate } from "@/lib/formatters";
 import type { Scan } from "@/types";
@@ -27,7 +28,7 @@ export default function ScanPage() {
   const [error, setError] = useState<string | null>(null);
   const [scans, setScans] = useState<Scan[]>([]);
   const [activeScanId, setActiveScanId] = useState<string | null>(null);
-  const { progress, events, isComplete } = useScanProgress(activeScanId);
+  const { progress, latestEvent, isComplete, percentComplete } = useSSE(activeScanId);
   const router = useRouter();
 
   // Clear activeScanId and refresh list when SSE indicates completion
@@ -143,43 +144,31 @@ export default function ScanPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5 animate-pulse text-primary" />
-              Scan Progress
+              <Loader2 className={cn("h-5 w-5", !isComplete && "animate-spin")} />
+              {isComplete ? "Scan Complete" : "Scanning..."}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-muted-foreground">Progress</span>
-                <span className="font-mono">{progress}%</span>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
+            <div className="w-full bg-muted rounded-full h-3">
+              <div
+                className="bg-blue-500 h-3 rounded-full transition-all duration-300"
+                style={{ width: `${percentComplete}%` }}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {latestEvent?.message || "Initializing..."}
+            </p>
+
+            <div className="bg-gray-900 text-green-400 font-mono text-xs rounded-lg p-4 max-h-48 overflow-y-auto">
+              {progress.map((p, i) => (
+                <div key={i}>[{p.progress}%] {p.message}</div>
+              ))}
             </div>
 
-            {events.filter((e) => e.asset).slice(-10).length > 0 && (
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {events
-                  .filter((e) => e.asset)
-                  .slice(-10)
-                  .map((e, i) => (
-                    <div key={i} className="flex justify-between text-sm py-1 border-b border-border/40 last:border-0">
-                      <span className="font-mono text-xs truncate max-w-[70%]">{e.asset!.hostname}</span>
-                      <div className="flex items-center gap-2">
-                        {e.asset!.tlsVersion && (
-                          <span className="text-muted-foreground text-xs">{e.asset!.tlsVersion}</span>
-                        )}
-                        {e.asset!.score !== undefined && (
-                          <span className="font-mono text-xs">{e.asset!.score}/100</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-              </div>
+            {isComplete && (
+              <Button onClick={() => router.push("/dashboard")}>
+                View Results
+              </Button>
             )}
           </CardContent>
         </Card>
