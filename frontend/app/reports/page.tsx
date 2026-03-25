@@ -6,8 +6,7 @@ import type { Scan } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, Calendar, Loader2, AlertTriangle } from "lucide-react";
-import { formatScore, formatDate, classificationLabel, classificationBgColor } from "@/lib/formatters";
-import type { RiskClassification } from "@/types";
+import { formatDate } from "@/lib/formatters";
 
 export default function ReportsPage() {
   const [scans, setScans] = useState<Scan[]>([]);
@@ -62,14 +61,6 @@ export default function ReportsPage() {
       ) : (
         <div className="space-y-4">
           {scans.map((scan) => {
-            // Compute classification from averageScore if available
-            const classification: RiskClassification | null = scan.averageScore != null
-              ? scan.averageScore <= 15 ? "FULLY_QUANTUM_SAFE"
-              : scan.averageScore <= 40 ? "PQC_READY"
-              : scan.averageScore <= 70 ? "PARTIALLY_SAFE"
-              : "VULNERABLE"
-              : null;
-
             return (
               <Card key={scan.id}>
                 <CardContent className="flex items-center justify-between py-4">
@@ -81,14 +72,6 @@ export default function ReportsPage() {
                         {scan.completedAt ? formatDate(scan.completedAt) : "—"}
                       </span>
                       <span>{scan.totalAssets} assets</span>
-                      {scan.averageScore != null && (
-                        <span>Score: {formatScore(scan.averageScore)}</span>
-                      )}
-                      {classification && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${classificationBgColor(classification)}`}>
-                          {classificationLabel(classification)}
-                        </span>
-                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -116,14 +99,6 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-export default function ReportsPage() {
-  const [scans, setScans] = useState<Scan[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchScans() {
       try {
         const data = await getScans();
         setScans(data.filter((s) => s.status === "COMPLETED"));

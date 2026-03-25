@@ -3,7 +3,23 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { verifyBadge } from "@/services/api";
-import type { Badge } from "@/types";
+
+interface BadgeVerifyResult {
+  valid: boolean;
+  badge: {
+    id: string;
+    badgeType: string;
+    score: number;
+    hostname: string;
+    issuedAt: string;
+    expiresAt: string;
+    signatureAlgo: string;
+  };
+  currentScore: number | null;
+  expired: boolean;
+  revoked: boolean;
+  signatureValid: boolean;
+}
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge as UiBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,17 +31,17 @@ function BadgeVerifyContent() {
   const searchParams = useSearchParams();
   const [badgeId, setBadgeId] = useState(searchParams.get("id") ?? "");
   const [loading, setLoading] = useState(false);
-  const [badge, setBadge] = useState<Badge | null>(null);
+  const [result, setResult] = useState<BadgeVerifyResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const verify = async (id: string) => {
     if (!id.trim()) return;
     setLoading(true);
     setError(null);
-    setBadge(null);
+    setResult(null);
     try {
-      const result = await verifyBadge(id.trim());
-      setBadge(result);
+      const data = await verifyBadge(id.trim());
+      setResult(data);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Badge not found or invalid";
       setError(message);
@@ -40,9 +56,9 @@ function BadgeVerifyContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const isExpired = badge ? new Date(badge.expiresAt) < new Date() : false;
-  const isRevoked = badge ? badge.revokedAt !== null : false;
-  const isValid = badge ? !isExpired && !isRevoked : false;
+  const isValid = result?.valid ?? false;
+  const isExpired = result?.expired ?? false;
+  const isRevoked = result?.revoked ?? false;
 
   return (
     <div className="max-w-xl mx-auto space-y-8">
@@ -89,7 +105,7 @@ function BadgeVerifyContent() {
         </Card>
       )}
 
-      {badge && (
+      {result && (
         <Card className={isValid ? "border-green-500/30" : isRevoked ? "border-red-500/30" : "border-amber-500/30"}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -110,24 +126,18 @@ function BadgeVerifyContent() {
                     : "bg-red-500/10 text-red-500 border-red-500/20 text-sm px-3 py-1"
                 }
               >
-                {badge.badgeType === "FULLY_QUANTUM_SAFE" ? "Fully Quantum Safe" : "PQC Ready"}
+                {result.badge.badgeType === "FULLY_QUANTUM_SAFE" ? "Fully Quantum Safe" : "PQC Ready"}
               </UiBadge>
             </div>
 
-            {badge.qrCodeData && (
-              <div className="flex justify-center">
-                <img
-                  src={badge.qrCodeData}
-                  alt="Badge QR Code"
-                  className="w-36 h-36 rounded-lg border p-1"
-                />
-              </div>
-            )}
-
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
+                <p className="text-muted-foreground">Asset</p>
+                <p className="font-mono font-medium">{result.badge.hostname}</p>
+              </div>
+              <div>
                 <p className="text-muted-foreground">Score</p>
-                <p className="font-mono font-medium">{badge.score}/100</p>
+                <p className="font-mono font-medium">{result.badge.score}/100</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Status</p>
@@ -136,16 +146,22 @@ function BadgeVerifyContent() {
                 </p>
               </div>
               <div>
+                <p className="text-muted-foreground">Signature Check</p>
+                <p className={result.signatureValid ? "text-green-500 font-medium" : "text-red-500 font-medium"}>
+                  {result.signatureValid ? "Valid" : "Invalid"}
+                </p>
+              </div>
+              <div>
                 <p className="text-muted-foreground">Issued</p>
-                <p>{formatDate(badge.issuedAt)}</p>
+                <p>{formatDate(result.badge.issuedAt)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Expires</p>
-                <p>{formatDate(badge.expiresAt)}</p>
+                <p>{formatDate(result.badge.expiresAt)}</p>
               </div>
               <div className="col-span-2">
-                <p className="text-muted-foreground">Signature</p>
-                <p className="font-mono text-xs break-all">{badge.signature}</p>
+                <p className="text-muted-foreground">Signature Algorithm</p>
+                <p className="font-mono text-xs">{result.badge.signatureAlgo}</p>
               </div>
             </div>
           </CardContent>

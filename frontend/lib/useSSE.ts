@@ -2,23 +2,45 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
+// Shape rendered in the log console
 export interface ScanProgress {
   event: string;
   progress: number;
   message: string;
-  status?: string;
-  assetCount?: number;
-  asset?: {
-    hostname: string;
-    tlsVersion?: string;
-    keyExchange?: string;
-    score?: number;
-    classification?: string;
-  };
-  summary?: {
-    totalAssets: number;
-    avgScore: number;
-  };
+}
+
+// Raw shape emitted by the backend SSE endpoint
+interface BackendScanEvent {
+  scanId: string;
+  event: string;
+  data: Record<string, unknown>;
+}
+
+function transformEvent(raw: BackendScanEvent): ScanProgress {
+  const { event, data } = raw;
+  switch (event) {
+    case "discovery_start":
+      return { event, progress: 5, message: `Discovering assets for ${data.domain ?? "domain"}...` };
+    case "discovery_complete":
+      return { event, progress: 10, message: `Found ${data.assetsFound ?? 0} assets` };
+    case "asset_scanned": {
+      const scanned = Number(data.scannedCount ?? 0);
+      const total = Number(data.totalAssets ?? 1);
+      const pct = Math.round(10 + (scanned / total) * 70);
+      const alive = data.isAlive ? "" : " (unreachable)";
+      return { event, progress: pct, message: `Scanned ${data.hostname ?? "asset"}${alive}` };
+    }
+    case "scoring_complete":
+      return { event, progress: 85, message: "Running risk scoring..." };
+    case "scan_complete":
+      return { event, progress: 100, message: `Scan complete — ${data.totalAssets ?? 0} assets scanned` };
+    case "scan_failed":
+      return { event, progress: 0, message: `Scan failed: ${String(data.message ?? "unknown error")}` };
+    case "connected":
+      return { event, progress: 0, message: "Connected to scan stream..." };
+    default:
+      return { event, progress: 0, message: event };
+  }
 }
 
 export function useSSE(scanId: string | null) {
@@ -47,11 +69,12 @@ export function useSSE(scanId: string | null) {
 
     es.onmessage = (event) => {
       try {
-        const data: ScanProgress = JSON.parse(event.data);
-        setProgress((prev) => [...prev, data]);
-        setLatestEvent(data);
+        const raw: BackendScanEvent = JSON.parse(event.data);
+        const transformed = transformEvent(raw);
+        setProgress((prev) => [...prev, transformed]);
+        setLatestEvent(transformed);
 
-        if (data.event === "completed" || data.event === "failed") {
+        if (raw.event === "scan_complete" || raw.event === "scan_failed") {
           setIsComplete(true);
           es.close();
           setIsConnected(false);
