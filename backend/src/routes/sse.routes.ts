@@ -1,5 +1,7 @@
 import { Request, Response, Router } from "express";
 
+import { scanEvents } from "../services/scan-events";
+
 const router = Router();
 
 router.get("/:id/progress", (req: Request, res: Response) => {
@@ -9,12 +11,21 @@ router.get("/:id/progress", (req: Request, res: Response) => {
 
   res.write(`data: ${JSON.stringify({ event: "connected", scanId: req.params.id })}\n\n`);
 
-  const keepAlive = setInterval(() => {
-    res.write(": keepalive\n\n");
+  const scanId = req.params.id;
+
+  const handler = (event: any) => {
+    res.write(`data: ${JSON.stringify(event)}\n\n`);
+  };
+
+  scanEvents.on(`scan:${scanId}`, handler);
+
+  const heartbeat = setInterval(() => {
+    res.write(": heartbeat\n\n");
   }, 15000);
 
   req.on("close", () => {
-    clearInterval(keepAlive);
+    scanEvents.off(`scan:${scanId}`, handler);
+    clearInterval(heartbeat);
   });
 });
 
