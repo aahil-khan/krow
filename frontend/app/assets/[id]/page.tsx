@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getAsset, getScanDrift } from "@/services/api";
 import { Asset, DriftResult } from "@/types";
-import { RiskScoreDisplay } from "@/components/dashboard/RiskScoreDisplay";
+import RiskScoreDisplay from "@/components/dashboard/RiskScoreDisplay";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

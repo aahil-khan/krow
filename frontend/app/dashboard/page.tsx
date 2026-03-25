@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getDashboardSummary, getHeatmapData } from "@/services/api";
 import { DashboardSummary, HeatmapEntry } from "@/types";
-import { StatCard } from "@/components/dashboard/StatCard";
+import StatCard from "@/components/dashboard/StatCard";
 import ClassificationBreakdown from "@/components/dashboard/ClassificationBreakdown";
-import { RiskScoreDisplay } from "@/components/dashboard/RiskScoreDisplay";
+import RiskScoreDisplay from "@/components/dashboard/RiskScoreDisplay";
 import { RiskHeatmap } from "@/components/dashboard/RiskHeatmap";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {

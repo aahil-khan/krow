@@ -7,7 +7,7 @@ import { Shield, TrendingDown, TrendingUp, AlertTriangle, FileDown, Building2, L
 import { getDashboardSummary, getHeatmapData, getScans } from "@/services/api";
 import type { DashboardSummary, HeatmapEntry, Scan, RiskClassification } from "@/types";
 import { formatScore, classificationLabel, classificationBgColor } from "@/lib/formatters";
-import { RiskScoreDisplay } from "@/components/dashboard/RiskScoreDisplay";
+import RiskScoreDisplay from "@/components/dashboard/RiskScoreDisplay";
 import StatCard from "@/components/dashboard/StatCard";
 import ClassificationBreakdown from "@/components/dashboard/ClassificationBreakdown";
 import { RiskHeatmap } from "@/components/dashboard/RiskHeatmap";
