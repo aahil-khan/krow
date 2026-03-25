@@ -22,7 +22,6 @@ export interface Scan {
   isBaseline: boolean;
   totalAssets: number;
   scannedAssets: number;
-  averageScore?: number;
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;

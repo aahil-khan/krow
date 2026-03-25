@@ -2,7 +2,13 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { verifyBadge } from "@/services/api";
+import { verifyBadge, getBadge } from "@/services/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge as UiBadge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { CheckCircle2, XCircle, Shield, Loader2 } from "lucide-react";
+import { formatDate } from "@/lib/formatters";
 
 interface BadgeVerifyResult {
   valid: boolean;
@@ -20,18 +26,13 @@ interface BadgeVerifyResult {
   revoked: boolean;
   signatureValid: boolean;
 }
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge as UiBadge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { CheckCircle2, XCircle, Shield, Loader2 } from "lucide-react";
-import { formatDate } from "@/lib/formatters";
 
 function BadgeVerifyContent() {
   const searchParams = useSearchParams();
   const [badgeId, setBadgeId] = useState(searchParams.get("id") ?? "");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<BadgeVerifyResult | null>(null);
+  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const verify = async (id: string) => {
@@ -39,9 +40,14 @@ function BadgeVerifyContent() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setQrCodeData(null);
     try {
       const data = await verifyBadge(id.trim());
       setResult(data);
+      // Fetch full badge record to get QR code
+      getBadge(id.trim())
+        .then((b) => setQrCodeData(b.qrCodeData ?? null))
+        .catch(() => {});
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Badge not found or invalid";
       setError(message);
@@ -129,6 +135,16 @@ function BadgeVerifyContent() {
                 {result.badge.badgeType === "FULLY_QUANTUM_SAFE" ? "Fully Quantum Safe" : "PQC Ready"}
               </UiBadge>
             </div>
+
+            {qrCodeData && (
+              <div className="flex justify-center">
+                <img
+                  src={qrCodeData}
+                  alt="Badge QR Code"
+                  className="w-36 h-36 rounded-lg border p-1"
+                />
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>

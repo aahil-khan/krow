@@ -192,7 +192,6 @@ export default function CISOPage() {
                   <tr className="border-b text-left text-muted-foreground">
                     <th className="pb-2 font-medium">Domain</th>
                     <th className="pb-2 font-medium">Assets</th>
-                    <th className="pb-2 font-medium">Avg Score</th>
                     <th className="pb-2 font-medium">Status</th>
                     <th className="pb-2 font-medium">Date</th>
                     <th className="pb-2 font-medium">Report</th>
@@ -203,9 +202,6 @@ export default function CISOPage() {
                     <tr key={scan.id} className="border-b last:border-0">
                       <td className="py-2 font-mono text-sm">{scan.domain}</td>
                       <td className="py-2">{scan.totalAssets}</td>
-                      <td className="py-2">
-                        {scan.averageScore != null ? formatScore(scan.averageScore) : "—"}
-                      </td>
                       <td className="py-2">
                         <span className="px-2 py-1 rounded-full text-xs bg-green-500/10 text-green-500">
                           Completed
