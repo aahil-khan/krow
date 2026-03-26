@@ -74,3 +74,18 @@ export function truncateHostname(hostname: string, maxLength: number = 30): stri
   if (hostname.length <= maxLength) return hostname;
   return hostname.slice(0, maxLength - 3) + "...";
 }
+
+export function riskLevelDescription(classification: RiskClassification): string {
+  switch (classification) {
+    case "FULLY_QUANTUM_SAFE":
+      return "This asset uses quantum-safe cryptographic algorithms. No immediate action needed.";
+    case "PQC_READY":
+      return "This asset is well-prepared for the post-quantum transition. Minor improvements recommended.";
+    case "PARTIALLY_SAFE":
+      return "This asset uses some vulnerable cryptographic primitives. Migration guidance available.";
+    case "VULNERABLE":
+      return "This asset is vulnerable to quantum attacks. Urgent remediation recommended — HNDL risk active.";
+    default:
+      return "Risk level unknown.";
+  }
+}
