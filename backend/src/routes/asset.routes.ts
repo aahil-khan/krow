@@ -7,6 +7,16 @@ const router = Router();
 router.get("/scans/:scanId/assets", async (req, res) => {
   try {
     const { scanId } = req.params;
+    const sort = req.query.sort as string | undefined;
+
+    let orderBy: any = { hostname: "asc" };
+    if (sort === "score_asc") {
+      orderBy = { riskScore: { totalScore: "asc" } };
+    } else if (sort === "score_desc") {
+      orderBy = { riskScore: { totalScore: "desc" } };
+    } else if (sort === "hostname") {
+      orderBy = { hostname: "asc" };
+    }
 
     const scan = await prisma.scan.findUnique({ where: { id: scanId } });
     if (!scan) {
@@ -19,7 +29,7 @@ router.get("/scans/:scanId/assets", async (req, res) => {
         riskScore: true,
         badge: true,
       },
-      orderBy: { hostname: "asc" },
+      orderBy,
     });
 
     res.json(assets);
@@ -39,7 +49,7 @@ router.get("/assets/:id", async (req, res) => {
         badge: true,
         aiRecommendation: true,
         scan: {
-          select: { id: true, domain: true, status: true, createdAt: true },
+          select: { id: true, domain: true, status: true, completedAt: true },
         },
       },
     });
