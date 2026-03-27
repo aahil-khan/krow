@@ -19,6 +19,7 @@ export interface Scan {
   id: string;
   domain: string;
   status: ScanStatus;
+  discoveryMode?: "CRT_SH" | "FALLBACK_ROOT" | "FALLBACK_WITH_HISTORY" | "UNKNOWN";
   isBaseline: boolean;
   totalAssets: number;
   scannedAssets: number;
@@ -102,6 +103,15 @@ export interface Badge {
 export interface DashboardSummary {
   totalAssets: number;
   averageScore: number;
+  componentAverages: {
+    tlsVersionScore: number;
+    certSigAlgoScore: number;
+    keyExchangeScore: number;
+    jwksAlgoScore: number;
+    cipherStrengthScore: number;
+  };
+  quantumSafeCount: number;
+  pqcReadyCount: number;
   classificationBreakdown: Record<RiskClassification, number>;
   lastScanDate: string | null;
   lastScanDomain: string | null;

@@ -1,11 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getScans } from "@/services/api";
+import {
+  getCbomDownloadUrl,
+  getCbomExcelUrl,
+  getCbomPdfUrl,
+  getComplianceReportUrl,
+  getScans,
+} from "@/services/api";
 import type { Scan } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Calendar, Loader2, AlertTriangle } from "lucide-react";
+import { Calendar, Download, FileCode, FileText, Loader2, Sheet, AlertTriangle } from "lucide-react";
 import { formatDate } from "@/lib/formatters";
 
 export default function ReportsPage() {
@@ -74,20 +80,38 @@ export default function ReportsPage() {
                       <span>{scan.totalAssets} assets</span>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(`/api/scans/${scan.id}/cbom`, "_blank")}
+                      onClick={() => window.open(getCbomDownloadUrl(scan.id), "_blank")}
                     >
-                      JSON
+                      <FileCode className="h-4 w-4 mr-2" />
+                      CBOM JSON
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => window.open(`/api/scans/${scan.id}/report`, "_blank")}
+                      size="sm"
+                      onClick={() => window.open(getCbomPdfUrl(scan.id), "_blank")}
                     >
                       <Download className="h-4 w-4 mr-2" />
-                      Download PDF
+                      CBOM PDF
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(getCbomExcelUrl(scan.id), "_blank")}
+                    >
+                      <Sheet className="h-4 w-4 mr-2" />
+                      CBOM Excel
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(getComplianceReportUrl(scan.id), "_blank")}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Compliance PDF
                     </Button>
                   </div>
                 </CardContent>

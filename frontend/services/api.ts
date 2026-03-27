@@ -15,6 +15,11 @@ export async function getScans() {
   return data;
 }
 
+export async function getLatestCompletedScan() {
+  const scans = await getScans();
+  return scans.find((s: { status: string }) => s.status === "COMPLETED") ?? null;
+}
+
 export async function getScan(id: string) {
   const { data } = await api.get(`/scans/${id}`);
   return data;
@@ -42,6 +47,23 @@ export async function getHeatmapData() {
 
 export function getCbomDownloadUrl(scanId: string) {
   return `/api/scans/${scanId}/cbom`;
+}
+
+export async function getCbomData(scanId: string) {
+  const { data } = await api.get(`/scans/${scanId}/cbom`);
+  return data;
+}
+
+export function getCbomPdfUrl(scanId: string) {
+  return `/api/scans/${scanId}/cbom/pdf`;
+}
+
+export function getCbomExcelUrl(scanId: string) {
+  return `/api/scans/${scanId}/cbom/excel`;
+}
+
+export function getComplianceReportUrl(scanId: string) {
+  return `/api/scans/${scanId}/report`;
 }
 
 export async function verifyBadge(badgeId: string) {

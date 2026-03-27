@@ -6,6 +6,7 @@ import { Globe, Loader2, Scan as ScanIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,6 +22,19 @@ import { useSSE } from "@/lib/useSSE";
 import StatusBadge from "@/components/dashboard/StatusBadge";
 import { formatDate } from "@/lib/formatters";
 import type { Scan } from "@/types";
+
+function discoveryModeLabel(mode: Scan["discoveryMode"]): { text: string; className: string } {
+  switch (mode) {
+    case "CRT_SH":
+      return { text: "Certificate Transparency", className: "bg-blue-500/10 text-blue-400" };
+    case "FALLBACK_ROOT":
+      return { text: "Root Domain Only", className: "bg-amber-500/10 text-amber-400" };
+    case "FALLBACK_WITH_HISTORY":
+      return { text: "Historical Merge", className: "bg-green-500/10 text-green-400" };
+    default:
+      return { text: "Legacy Scan", className: "bg-muted text-muted-foreground" };
+  }
+}
 
 export default function ScanPage() {
   const [domain, setDomain] = useState("");
@@ -154,7 +168,7 @@ export default function ScanPage() {
           <CardContent className="space-y-4">
             <div className="w-full bg-muted rounded-full h-3">
               <div
-                className="bg-blue-500 h-3 rounded-full transition-all duration-300"
+                className="bg-cyan-500 h-3 rounded-full transition-all duration-300"
                 style={{ width: `${percentComplete}%` }}
               />
             </div>
@@ -190,6 +204,7 @@ export default function ScanPage() {
                   <TableHead>Domain</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Assets</TableHead>
+                  <TableHead>Discovery</TableHead>
                   <TableHead>Started</TableHead>
                 </TableRow>
               </TableHeader>
@@ -203,6 +218,11 @@ export default function ScanPage() {
                     <TableCell className="font-mono text-sm">{scan.domain}</TableCell>
                     <TableCell><StatusBadge status={scan.status} /></TableCell>
                     <TableCell>{scan.totalAssets || "—"}</TableCell>
+                    <TableCell>
+                      <Badge className={discoveryModeLabel(scan.discoveryMode).className}>
+                        {discoveryModeLabel(scan.discoveryMode).text}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-sm">
                       {scan.startedAt ? formatDate(scan.startedAt) : "Pending"}
                     </TableCell>

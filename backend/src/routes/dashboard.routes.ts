@@ -16,6 +16,15 @@ router.get("/summary", async (_req, res) => {
       return res.json({
         totalAssets: 0,
         averageScore: 0,
+        componentAverages: {
+          tlsVersionScore: 0,
+          certSigAlgoScore: 0,
+          keyExchangeScore: 0,
+          jwksAlgoScore: 0,
+          cipherStrengthScore: 0,
+        },
+        quantumSafeCount: 0,
+        pqcReadyCount: 0,
         classificationBreakdown: {
           FULLY_QUANTUM_SAFE: 0,
           PQC_READY: 0,
@@ -33,10 +42,10 @@ router.get("/summary", async (_req, res) => {
     });
 
     const totalAssets = riskScores.length;
+    const avg = (picker: (v: (typeof riskScores)[number]) => number): number =>
+      totalAssets > 0 ? riskScores.reduce((sum, rs) => sum + picker(rs), 0) / totalAssets : 0;
     const averageScore =
-      totalAssets > 0
-        ? riskScores.reduce((sum, rs) => sum + rs.totalScore, 0) / totalAssets
-        : 0;
+      avg((rs) => rs.totalScore);
 
     const classificationBreakdown = {
       FULLY_QUANTUM_SAFE: 0,
@@ -52,6 +61,15 @@ router.get("/summary", async (_req, res) => {
     res.json({
       totalAssets,
       averageScore: Math.round(averageScore * 10) / 10,
+      componentAverages: {
+        tlsVersionScore: Math.round(avg((rs) => rs.tlsVersionScore) * 10) / 10,
+        certSigAlgoScore: Math.round(avg((rs) => rs.certSigAlgoScore) * 10) / 10,
+        keyExchangeScore: Math.round(avg((rs) => rs.keyExchangeScore) * 10) / 10,
+        jwksAlgoScore: Math.round(avg((rs) => rs.jwksAlgoScore) * 10) / 10,
+        cipherStrengthScore: Math.round(avg((rs) => rs.cipherStrengthScore) * 10) / 10,
+      },
+      quantumSafeCount: classificationBreakdown.FULLY_QUANTUM_SAFE,
+      pqcReadyCount: classificationBreakdown.PQC_READY,
       classificationBreakdown,
       lastScanDate: latestScan.completedAt,
       lastScanDomain: latestScan.domain,
