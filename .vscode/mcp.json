@@ -4,7 +4,7 @@
       "type": "stdio",
       "command": "node",
       "args": [
-        "c:\\Users\\aahil\\.cursor\\extensions\\vanta-thapar.flowsync-1.0.2\\dist\\mcp-server.mjs"
+        "c:\\Users\\Anoushka\\.vscode\\extensions\\vanta-thapar.flowsync-1.0.2\\dist\\mcp-server.mjs"
       ],
       "env": {
         "FLOWSYNC_API_URL": "https://86tzell2w9.execute-api.us-east-1.amazonaws.com/prod",

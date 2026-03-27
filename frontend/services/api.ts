@@ -54,4 +54,14 @@ export async function getRecommendation(assetId: string) {
   return data;
 }
 
+export async function getScanDrift(scanId: string) {
+  const { data } = await api.get(`/scans/${scanId}/drift`);
+  return data;
+}
+
+export async function getBadge(id: string) {
+  const { data } = await api.get(`/badges/${id}`);
+  return data;
+}
+
 export default api;

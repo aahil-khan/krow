@@ -28,6 +28,32 @@ export interface Scan {
   assets?: Asset[];
 }
 
+export interface DriftItem {
+  hostname: string;
+  assetType: string;
+  previousScore: number | null;
+  currentScore: number | null;
+  previousClassification: string | null;
+  currentClassification: string | null;
+  changeType: "regression" | "improvement" | "new" | "removed";
+}
+
+export interface DriftResult {
+  baselineScanId: string;
+  currentScanId: string;
+  baselineDomain: string;
+  regressions: DriftItem[];
+  improvements: DriftItem[];
+  newAssets: DriftItem[];
+  removedAssets: DriftItem[];
+  summary: {
+    totalChanged: number;
+    avgScoreChange: number;
+    previousAvgScore: number;
+    currentAvgScore: number;
+  };
+}
+
 export interface Asset {
   id: string;
   scanId: string;
@@ -78,10 +104,14 @@ export interface DashboardSummary {
   averageScore: number;
   classificationBreakdown: Record<RiskClassification, number>;
   lastScanDate: string | null;
+  lastScanDomain: string | null;
 }
 
 export interface HeatmapEntry {
+  id: string;
   hostname: string;
   score: number;
   classification: RiskClassification;
+  tlsVersion?: string | null;
+  keyExchange?: string | null;
 }
