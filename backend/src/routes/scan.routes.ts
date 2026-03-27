@@ -4,6 +4,20 @@ import prisma from "../utils/prisma";
 
 const router = Router();
 
+async function getDiscoveryMode(scanId: string): Promise<string> {
+  const log = await prisma.auditLog.findFirst({
+    where: {
+      eventType: "DISCOVERY_SUMMARY",
+      details: { path: ["scanId"], equals: scanId },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { details: true },
+  });
+
+  const details = (log?.details as { mode?: string } | null) ?? null;
+  return details?.mode ?? "UNKNOWN";
+}
+
 router.post("/", async (req, res) => {
   try {
     const { domain } = req.body;
@@ -37,7 +51,13 @@ router.get("/", async (_req, res) => {
       orderBy: { createdAt: "desc" },
       include: { _count: { select: { assets: true } } },
     });
-    return res.json(scans);
+    const withDiscovery = await Promise.all(
+      scans.map(async (scan) => ({
+        ...scan,
+        discoveryMode: await getDiscoveryMode(scan.id),
+      })),
+    );
+    return res.json(withDiscovery);
   } catch (error) {
     console.error("Error listing scans:", error);
     return res.status(500).json({ error: "Failed to list scans" });
@@ -67,8 +87,11 @@ router.get("/:id", async (req, res) => {
       (a) => a.riskScore?.classification === "VULNERABLE",
     ).length;
 
+    const discoveryMode = await getDiscoveryMode(scan.id);
+
     return res.json({
       ...scan,
+      discoveryMode,
       summary: {
         averageScore: Math.round(avgScore * 10) / 10,
         vulnerableCount,

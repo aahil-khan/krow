@@ -3,7 +3,7 @@ import pLimit from "p-limit";
 import prisma from "../utils/prisma";
 import { MAX_CONCURRENT_SCANS, PROBE_DELAY_MS } from "../utils/constants";
 import { emitScanProgress } from "./scan-events";
-import { discoverSubdomains } from "./discovery.service";
+import { discoverSubdomainsDetailed } from "./discovery.service";
 import { probeJwks } from "./jwks.service";
 import { probeTls } from "./tls.service";
 import { computeRiskScore } from "./pqc-engine.service";
@@ -34,9 +34,37 @@ export async function executeScan(
     });
 
     // ---- Stage 1: Discovery
-    let discovered = await discoverSubdomains(scan.domain);
+    const discovery = await discoverSubdomainsDetailed(scan.domain);
+    let discovered = discovery.assets;
+    let discoveryMode: "CRT_SH" | "FALLBACK_ROOT" | "FALLBACK_WITH_HISTORY" = discovery.mode;
 
-    if (discovered.length === 1 && discovered[0]?.hostname === scan.domain.toLowerCase()) {
+    // If crt.sh is flaky, enrich fallback runs with historical assets for the same domain.
+    if (discoveryMode === "FALLBACK_ROOT") {
+      const historical = await prisma.asset.findMany({
+        where: {
+          scan: {
+            domain: scan.domain,
+            status: "COMPLETED",
+          },
+        },
+        select: { hostname: true, firstSeenAt: true },
+        distinct: ["hostname"],
+      });
+
+      const byHostname = new Map(discovered.map((a) => [a.hostname, a] as const));
+      for (const prior of historical) {
+        if (!byHostname.has(prior.hostname)) {
+          byHostname.set(prior.hostname, {
+            hostname: prior.hostname,
+            firstSeenAt: prior.firstSeenAt ? prior.firstSeenAt.toISOString() : null,
+          });
+        }
+      }
+      discovered = Array.from(byHostname.values());
+      if (discovered.length > 1) {
+        discoveryMode = "FALLBACK_WITH_HISTORY";
+      }
+
       await prisma.auditLog.create({
         data: {
           eventType: "DISCOVERY_FALLBACK_USED",
@@ -45,10 +73,24 @@ export async function executeScan(
             domain: scan.domain,
             provider: "crt.sh",
             fallback: "root-domain-only",
+            historicalMerged: discovered.length > 1,
           },
         },
       });
     }
+
+    await prisma.auditLog.create({
+      data: {
+        eventType: "DISCOVERY_SUMMARY",
+        details: {
+          scanId,
+          domain: scan.domain,
+          mode: discoveryMode,
+          assetsDiscovered: discovered.length,
+          provider: "crt.sh",
+        },
+      },
+    });
 
     // For demo seeding: cap number of assets so runtime stays reasonable.
     if (options?.maxAssets && discovered.length > options.maxAssets) {
