@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 
-import Header from "@/components/layout/Header";
-import Sidebar from "@/components/layout/Sidebar";
+import LayoutShell from "@/components/layout/LayoutShell";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"] });
@@ -14,15 +13,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body className={geist.className}>
-        <div className="flex min-h-screen bg-background">
-          <Sidebar />
-          <div className="flex-1 flex flex-col">
-            <Header />
-            <main className="flex-1 p-6">{children}</main>
-          </div>
-        </div>
+        <LayoutShell>{children}</LayoutShell>
       </body>
     </html>
   );

@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getDashboardSummary, getHeatmapData } from "@/services/api";
 import { DashboardSummary, HeatmapEntry } from "@/types";
 import StatCard from "@/components/dashboard/StatCard";
-import ClassificationBreakdown from "@/components/dashboard/ClassificationBreakdown";
 import RiskScoreDisplay from "@/components/dashboard/RiskScoreDisplay";
-import { RiskHeatmap } from "@/components/dashboard/RiskHeatmap";
+import CyberScoreGauge from "@/components/charts/CyberScoreGauge";
+import ClassificationDonut from "@/components/charts/ClassificationDonut";
+import RiskDistributionBar from "@/components/charts/RiskDistributionBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -17,7 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Shield, Activity, AlertTriangle, Clock, Loader2, FileText, ScanIcon, Building2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Shield, Activity, AlertTriangle, ShieldCheck, Loader2, FileText, ScanIcon, Search } from "lucide-react";
 import { classificationLabel, classificationBgColor, formatDate } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 
@@ -26,6 +28,7 @@ export default function DashboardPage() {
   const [heatmap, setHeatmap] = useState<HeatmapEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -47,6 +50,14 @@ export default function DashboardPage() {
     }
     fetchData();
   }, []);
+
+  // Sort by risk score descending, filter by search
+  const filteredAssets = useMemo(() => {
+    const sorted = [...heatmap].sort((a, b) => b.score - a.score);
+    if (!search.trim()) return sorted;
+    const q = search.toLowerCase();
+    return sorted.filter((a) => a.hostname.toLowerCase().includes(q));
+  }, [heatmap, search]);
 
   if (loading) {
     return (
@@ -81,6 +92,8 @@ export default function DashboardPage() {
     );
   }
 
+  const cyberScore = Math.round((1 - summary.averageScore / 100) * 1000);
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -99,56 +112,90 @@ export default function DashboardPage() {
             <ScanIcon className="h-4 w-4 mr-2" /> New Scan
           </Button>
           <Button variant="outline" onClick={() => router.push("/reports")}>
-            <FileText className="h-4 w-4 mr-2" /> View Reports
-          </Button>
-          <Button variant="outline" onClick={() => router.push("/ciso")}>
-            <Building2 className="h-4 w-4 mr-2" /> CISO Summary
+            <FileText className="h-4 w-4 mr-2" /> Reports
           </Button>
         </div>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Total Assets"
-          value={summary.totalAssets}
-          subtitle={summary.lastScanDomain || ""}
-          icon={Shield}
-        />
-        <StatCard
-          title="Average Risk Score"
-          value={`${summary.averageScore}/100`}
-          subtitle="Lower is better"
-          icon={Activity}
-          trend={summary.averageScore > 70 ? "up" : summary.averageScore < 40 ? "down" : "neutral"}
-        />
-        <StatCard
-          title="Vulnerable Assets"
-          value={summary.classificationBreakdown.VULNERABLE}
-          subtitle="Score > 70"
-          icon={AlertTriangle}
-          trend={summary.classificationBreakdown.VULNERABLE > 0 ? "up" : "down"}
-        />
-        <StatCard
-          title="Last Scan"
-          value={summary.lastScanDate ? formatDate(summary.lastScanDate) : "Never"}
-          icon={Clock}
-        />
+      {/* Score + Stats Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Cyber Score Gauge */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Cyber Score</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CyberScoreGauge score={cyberScore} />
+          </CardContent>
+        </Card>
+
+        {/* Stat Cards 2x2 */}
+        <div className="lg:col-span-2 grid grid-cols-2 gap-4">
+          <StatCard
+            title="Total Assets"
+            value={summary.totalAssets}
+            subtitle={summary.lastScanDomain || ""}
+            icon={Shield}
+          />
+          <StatCard
+            title="Average Risk Score"
+            value={`${summary.averageScore}/100`}
+            subtitle="Lower is better"
+            icon={Activity}
+            trend={summary.averageScore > 70 ? "up" : summary.averageScore < 40 ? "down" : "neutral"}
+          />
+          <StatCard
+            title="Vulnerable Assets"
+            value={summary.classificationBreakdown.VULNERABLE}
+            subtitle="Need attention"
+            icon={AlertTriangle}
+            trend={summary.classificationBreakdown.VULNERABLE > 0 ? "up" : "down"}
+          />
+          <StatCard
+            title="Quantum-Safe"
+            value={summary.quantumSafeCount ?? summary.classificationBreakdown.FULLY_QUANTUM_SAFE}
+            subtitle="Fully compliant"
+            icon={ShieldCheck}
+            trend="down"
+          />
+        </div>
       </div>
 
-      {/* Classification Breakdown */}
-      <ClassificationBreakdown
-        data={summary.classificationBreakdown}
-        total={summary.totalAssets}
-      />
-
-      {/* Risk Heatmap */}
-      <RiskHeatmap assets={heatmap} />
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Classification Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ClassificationDonut data={summary.classificationBreakdown} total={summary.totalAssets} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Risk Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RiskDistributionBar assets={heatmap} />
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Asset Risk Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Asset Risk Overview</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Asset Risk Overview</CardTitle>
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search hostname..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -162,7 +209,7 @@ export default function DashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {heatmap.map((asset) => (
+              {filteredAssets.map((asset) => (
                 <TableRow
                   key={asset.id}
                   className="cursor-pointer hover:bg-muted/50"
