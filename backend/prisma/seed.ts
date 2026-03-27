@@ -209,8 +209,110 @@ async function main() {
     },
   });
 
+  // Second scan for drift comparison (Day 4)
+  const scan2 = await prisma.scan.create({
+    data: {
+      domain: "example-bank.co.in",
+      status: "COMPLETED",
+      isBaseline: false,
+      totalAssets: 3,
+      scannedAssets: 3,
+      startedAt: new Date("2026-03-25T10:00:00Z"),
+      completedAt: new Date("2026-03-25T10:05:00Z"),
+    },
+  });
+
+  const driftAssets = [
+    {
+      hostname: "www.example-bank.co.in",
+      tlsVersion: "TLSv1.2",
+      keyExchange: "ECDHE-P256",
+      certSigAlgo: "SHA256withRSA",
+      certKeySize: 2048,
+      certIssuer: "CN=DigiCert Global G2 TLS RSA SHA256 2020 CA1, O=DigiCert Inc, C=US",
+      certSubject: "CN=www.example-bank.co.in",
+      score: {
+        total: 67.1,
+        class: "VULNERABLE" as const,
+        tls: 50,
+        cert: 60,
+        kex: 80,
+        jwks: 70,
+        cipher: 30,
+      },
+    },
+    {
+      hostname: "api.example-bank.co.in",
+      tlsVersion: "TLSv1.3",
+      keyExchange: "X25519",
+      certSigAlgo: "SHA256withECDSA",
+      certKeySize: 256,
+      certIssuer: "CN=Amazon RSA 2048 M02, O=Amazon, C=US",
+      certSubject: "CN=api.example-bank.co.in",
+      score: {
+        total: 44.7,
+        class: "PARTIALLY_SAFE" as const,
+        tls: 0,
+        cert: 30,
+        kex: 70,
+        jwks: 60,
+        cipher: 0,
+      },
+    },
+    {
+      hostname: "legacy.example-bank.co.in",
+      tlsVersion: "TLSv1.1",
+      keyExchange: "RSA",
+      certSigAlgo: "SHA1withRSA",
+      certKeySize: 1024,
+      certIssuer: "CN=VeriSign Class 3 Secure Server CA - G3, O=VeriSign Inc, C=US",
+      certSubject: "CN=legacy.example-bank.co.in",
+      score: {
+        total: 98.2,
+        class: "VULNERABLE" as const,
+        tls: 100,
+        cert: 100,
+        kex: 100,
+        jwks: 70,
+        cipher: 100,
+      },
+    },
+  ];
+
+  for (const def of driftAssets) {
+    const asset = await prisma.asset.create({
+      data: {
+        scanId: scan2.id,
+        hostname: def.hostname,
+        assetType: def.hostname.includes("api") ? "API" : "SUBDOMAIN",
+        port: 443,
+        tlsVersion: def.tlsVersion,
+        keyExchange: def.keyExchange,
+        certSigAlgo: def.certSigAlgo,
+        certKeySize: def.certKeySize,
+        certIssuer: def.certIssuer,
+        certSubject: def.certSubject,
+        firstSeenAt: new Date("2025-01-15T00:00:00Z"),
+      },
+    });
+
+    await prisma.riskScore.create({
+      data: {
+        assetId: asset.id,
+        classification: def.score.class,
+        totalScore: def.score.total,
+        tlsVersionScore: def.score.tls,
+        certSigAlgoScore: def.score.cert,
+        keyExchangeScore: def.score.kex,
+        jwksAlgoScore: def.score.jwks,
+        cipherStrengthScore: def.score.cipher,
+      },
+    });
+  }
+
   console.log(`\nSeed data created successfully!`);
   console.log(`Scan ID: ${scan.id}`);
+  console.log(`Second Scan ID: ${scan2.id}`);
   console.log("Use this ID to test API routes.");
 }
 

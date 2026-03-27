@@ -56,7 +56,25 @@ router.get("/:id", async (req, res) => {
     if (!scan) {
       return res.status(404).json({ error: "Scan not found" });
     }
-    return res.json(scan);
+
+    const assetsWithScores = scan.assets.filter((a) => a.riskScore);
+    const avgScore =
+      assetsWithScores.length > 0
+        ? assetsWithScores.reduce((sum, a) => sum + (a.riskScore?.totalScore || 0), 0) /
+          assetsWithScores.length
+        : 0;
+    const vulnerableCount = assetsWithScores.filter(
+      (a) => a.riskScore?.classification === "VULNERABLE",
+    ).length;
+
+    return res.json({
+      ...scan,
+      summary: {
+        averageScore: Math.round(avgScore * 10) / 10,
+        vulnerableCount,
+        scannedCount: assetsWithScores.length,
+      },
+    });
   } catch (error) {
     console.error("Error getting scan:", error);
     return res.status(500).json({ error: "Failed to get scan" });
