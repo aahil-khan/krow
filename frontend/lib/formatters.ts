@@ -78,14 +78,29 @@ export function truncateHostname(hostname: string, maxLength: number = 30): stri
 export function riskLevelDescription(classification: RiskClassification): string {
   switch (classification) {
     case "FULLY_QUANTUM_SAFE":
-      return "This asset uses quantum-safe cryptographic algorithms. No immediate action needed.";
+      return "This asset uses post-quantum cryptographic algorithms and is protected against quantum computing threats.";
     case "PQC_READY":
-      return "This asset is well-prepared for the post-quantum transition. Minor improvements recommended.";
+      return "This asset is mostly quantum-safe with minor improvements recommended.";
     case "PARTIALLY_SAFE":
-      return "This asset uses some vulnerable cryptographic primitives. Migration guidance available.";
+      return "This asset has some quantum-vulnerable components that should be migrated.";
     case "VULNERABLE":
-      return "This asset is vulnerable to quantum attacks. Urgent remediation recommended — HNDL risk active.";
+      return "This asset uses cryptography that is vulnerable to quantum computing attacks. Urgent remediation required.";
     default:
       return "Risk level unknown.";
+  }
+}
+
+export function priorityColor(priority: string): string {
+  switch (priority) {
+    case "CRITICAL":
+      return "bg-red-500/10 text-red-500";
+    case "HIGH":
+      return "bg-amber-500/10 text-amber-500";
+    case "MEDIUM":
+      return "bg-blue-500/10 text-blue-500";
+    case "LOW":
+      return "bg-green-500/10 text-green-500";
+    default:
+      return "bg-gray-500/10 text-gray-500";
   }
 }
